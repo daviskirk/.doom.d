@@ -1,9 +1,9 @@
 #+TITLE: Doom Emacs Configuration
 #+PROPERTY: header-args :tangle yes :cache yes :results silent :padline no
 
-* DOOM EMACS Configuration
-My [[https://github.com/hlissner/doom-emacs][Doom Emacs]] configuration.  Feel
-free to look around and copy whatever looks interesting to you.
+* Introduction
+Welcome to my [[https://github.com/hlissner/doom-emacs][Doom Emacs]] configuration. Feel free to look around and copy
+whatever looks interesting to you.
 
 - The current file is rendered out to [[./config.el][config.el]] when running `doom sync` (or
   `doom/reload` inside email)
