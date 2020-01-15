@@ -1,0 +1,199 @@
+#+TITLE: Doom Emacs Configuration
+#+PROPERTY: header-args :tangle yes :cache yes :results silent :padline no
+
+* DOOM EMACS Configuration
+My [[https://github.com/hlissner/doom-emacs][Doom Emacs]] configuration.  Feel
+free to look around and copy whatever looks interesting to you.
+
+- The current file is rendered out to [[./config.el][config.el]] when running `doom sync` (or
+  `doom/reload` inside email)
+- Activated modules can bee seen in [[./init.el][init.el]]
+- Any additional packages that are needed can be seen in [[./packages.el][packages.el]].
+
+* Configuration
+** Personal Information
+Used for a number of things, particularly for GPG configuration,
+some email clients, file templates and snippets.
+
+#+BEGIN_SRC elisp
+(setq user-full-name "Davis Kirkendall"
+      user-mail-address "davis.e.kirkendall@gmail.com")
+
+#+END_SRC
+** Appearance
+Doom exposes five (optional) variables for controlling fonts in Doom. Here
+are the three important ones:
+
++ `doom-font'
++ `doom-variable-pitch-font'
++ `doom-big-font' -- used for `doom-big-font-mode'
+
+They all accept either a font-spec, font string ("Input Mono-12"), or xlfd
+font string. You generally only need these two:
+
+#+BEGIN_SRC emacs-lisp
+(setq doom-font (font-spec :family "Fira Code" :size 16))
+#+END_SRC
+
+There are two ways to load a theme. Both assume the theme is installed and
+available. You can either set `doom-theme' or manually load a theme with the
+`load-theme' function. These are the defaults.
+#+BEGIN_SRC emacs-lisp
+(setq doom-theme 'doom-one)
+#+END_SRC
+
+Set default org directory
+#+BEGIN_SRC emacs-lisp
+(setq org-directory "~/org/")
+#+END_SRC
+
+If you want to change the style of line numbers, change this to `relative' or
+`nil' to disable it:
+#+BEGIN_SRC emacs-lisp
+(setq display-line-numbers-type t)
+#+END_SRC
+
+We want emacs to start in full screen mode so we change that here:
+#+BEGIN_SRC emacs-lisp
+(add-to-list 'default-frame-alist '(fullscreen . maximized))
+#+END_SRC
+
+** Interacting with shell
+Guake is a dropdown terminal and switching to guake from emacs in
+the current directory is pretty helpful if you don't want to use
+the shells in Emacs.
+
+#+BEGIN_SRC emacs-lisp
+
+(defun sd ()
+  "Switch to current directory by creating new window in guake."
+  (interactive)
+  ;; (concat "echo " "'" (file-name-directory (buffer-file-name)) "' > ~/.ld" )
+  (shell-command (concat "echo " "'" default-directory "' > ~/.ld" ))
+  (shell-command (concat "guake --new-tab=" default-directory))
+  (shell-command (concat "guake -r " (file-name-nondirectory
+                                      (directory-file-name default-directory))))
+  (shell-command "guake --show")
+  )
+
+#+END_SRC
+
+** Interacting with files
+
+Revert files automatically when they've changed on disk.  This is especially
+useful if you're editing the file in a different editor at the same time (yes,
+there are other editors), or running scripts that change/format the file.
+
+#+BEGIN_SRC emacs-lisp
+(global-auto-revert-mode 1)
+(setq auto-revert-verbose nil)
+#+END_SRC
+
+Autosaving is standard in most other environments nowadays so it's best not to
+have this different here as we might forget to save sometimes.
+
+#+BEGIN_SRC emacs-lisp
+(use-package super-save
+  :config
+  (add-to-list 'super-save-hook-triggers 'find-file-hook)
+  (setq super-save-remote-files nil)
+  (setq super-save-exclude '(".gpg", ".pyc", ".elc"))
+  (setq super-save-auto-save-when-idle t)
+  (setq auto-save-default nil)
+  (super-save-mode +1))
+
+;; ;; custom autosave to suppress messages
+;; ;;
+;; ;; For some reason `do-auto-save' doesn't work if called manually
+;; ;; after switching off the default autosave altogether. Instead set
+;; ;; to a long timeout so it is not called.
+;; (setq auto-save-timeout 99999)
+;; ;; Set up my timer
+;; (defvar dek/auto-save-timer nil
+;;   "Timer to run `dek/auto-save-silent'")
+;; ;; Auto-save every 5 seconds of idle time
+;; (defvar dek/auto-save-interval 2
+;;   "How often in seconds of idle time to auto-save with `dek/auto-save-silent'")
+;; ;; Function to auto save files silently
+;; (defun dek/auto-save-silent ()
+;;   "Auto-save all buffers silently"
+;;   (interactive)
+;;   (do-auto-save t))
+;; ;; Start new timer
+;; (setq dek/auto-save-timer
+;;       (run-with-idle-timer 0 dek/auto-save-interval 'dek/auto-save-silent))
+
+#+END_SRC
+
+** Python
+
+I use the conda package manager a lot, so we need to configure dooms builtin
+conda support.
+
+#+BEGIN_SRC emacs-lisp
+(after! conda
+  (setq conda-anaconda-home "~/anaconda")
+  (conda-env-autoactivate-mode t)
+  (setq-default conda-project-env-name "emacs"))
+#+END_SRC
+
+Using dooms builtin support doesn't activate the current conda environment
+correctly, so we do it ourselves (+lsp option turned of in python module).
+Note that the Microsoft language server might be faster, but does not support
+custom flake8/mypy linting so we use the python language server instead.
+
+#+BEGIN_SRC emacs-lisp
+(after! python
+  (add-hook 'python-mode-local-vars-hook (lambda ()
+                                           (conda-env-activate-for-buffer)
+                                           (lsp!)
+                                           ))
+  (setq lsp-pyls-plugins-flake8-enabled t)
+  (setq lsp-pyls-plugins-pylint-enabled nil)
+  (setq lsp-pyls-plugins-pycodestyle-enabled nil)
+  (setq lsp-pyls-plugins-pyflakes-enabled nil))
+#+END_SRC
+
+In order for this to work we need to install a bunch of stuff in the conda
+environment so I added a custom function for that as well in case I'm ever in a
+new environment and they haven't been installed yet.
+
+#+BEGIN_SRC emacs-lisp
+(after! conda
+  (defun dek/install-lsp ()
+    "Install conda packages needed for lsp/linting/completion support."
+    (interactive)
+    (if conda-env-current-name
+      (async-shell-command
+       "conda install python-language-server mypy black isort flake8 pytest ipython && pip install pyls-black pyls-isort pyls-mypy")
+    (message "no conda env set so skipping server installation"))))
+#+END_SRC
+
+Jinja2 templating is used all over the place so we configure the package.
+
+#+BEGIN_SRC emacs-lisp
+(use-package jinja2-mode
+  :defer
+  :commands jinja2-mode
+  :mode (("\\.jinja2$" . jinja2-mode)
+         ("\\.j2$" . jinja2-mode)
+         ("\\.j2.html$" . jinja2-mode)))
+
+#+END_SRC
+
+** Kubernetes
+Kubernetes mode provides an interactive interface to Kubernetes from emacs.
+Since it's related, we want to have the shortcut in a similar place as Dockers
+so we add a shortcut (`[Space] o K`) in a similar place as Dockers.
+
+#+BEGIN_SRC emacs-lisp
+(use-package kubernetes
+  :defer
+  :commands (kubernetes-overview))
+(use-package kubernetes-evil
+  :defer
+  :after kubernetes)
+(map! :leader
+      (:prefix "o"
+        :desc "Kubernetes" "K" 'kubernetes-overview))
+#+END_SRC
