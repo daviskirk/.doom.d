@@ -56,5 +56,5 @@
 (package! gitlab-ci-mode-flycheck)
 (package! kubernetes)
 (package! kubernetes-evil)
-(package! suoer-save)
+(package! super-save)
 (package! jinja2-mode)
