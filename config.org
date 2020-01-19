@@ -57,6 +57,15 @@ We want emacs to start in full screen mode so we change that here:
 #+BEGIN_SRC emacs-lisp
 (add-to-list 'default-frame-alist '(fullscreen . maximized))
 #+END_SRC
+** Navigation
+When we want to split a window, it's more intuitive when the new window is on
+the bottom (if horizontal) and on the right (if vertical).  This is how every
+other editor works so we'd like Emacs to do the same.
+
+#+BEGIN_SRC emacs-lisp
+(setq evil-split-window-below t
+      evil-vsplit-window-right t)
+#+END_SRC
 
 ** Interacting with shell
 Guake is a dropdown terminal and switching to guake from emacs in
@@ -101,28 +110,6 @@ have this different here as we might forget to save sometimes.
   (setq super-save-auto-save-when-idle t)
   (setq auto-save-default nil)
   (super-save-mode +1))
-
-;; ;; custom autosave to suppress messages
-;; ;;
-;; ;; For some reason `do-auto-save' doesn't work if called manually
-;; ;; after switching off the default autosave altogether. Instead set
-;; ;; to a long timeout so it is not called.
-;; (setq auto-save-timeout 99999)
-;; ;; Set up my timer
-;; (defvar dek/auto-save-timer nil
-;;   "Timer to run `dek/auto-save-silent'")
-;; ;; Auto-save every 5 seconds of idle time
-;; (defvar dek/auto-save-interval 2
-;;   "How often in seconds of idle time to auto-save with `dek/auto-save-silent'")
-;; ;; Function to auto save files silently
-;; (defun dek/auto-save-silent ()
-;;   "Auto-save all buffers silently"
-;;   (interactive)
-;;   (do-auto-save t))
-;; ;; Start new timer
-;; (setq dek/auto-save-timer
-;;       (run-with-idle-timer 0 dek/auto-save-interval 'dek/auto-save-silent))
-
 #+END_SRC
 
 ** Python
@@ -134,7 +121,7 @@ conda support.
 (after! conda
   (setq conda-anaconda-home "~/anaconda")
   (conda-env-autoactivate-mode t)
-  (setq-default conda-project-env-name "emacs"))
+  (setq-default conda-project-env-name nil))
 #+END_SRC
 
 Using dooms builtin support doesn't activate the current conda environment
@@ -146,8 +133,7 @@ custom flake8/mypy linting so we use the python language server instead.
 (after! python
   (add-hook 'python-mode-local-vars-hook (lambda ()
                                            (conda-env-activate-for-buffer)
-                                           (lsp!)
-                                           ))
+                                           (lsp!)))
   (setq lsp-pyls-plugins-flake8-enabled t)
   (setq lsp-pyls-plugins-pylint-enabled nil)
   (setq lsp-pyls-plugins-pycodestyle-enabled nil)
