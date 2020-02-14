@@ -67,6 +67,13 @@ other editor works so we'd like Emacs to do the same.
       evil-vsplit-window-right t)
 #+END_SRC
 
+By default, an "undo" undoes everything in an insert-mode session.  potentially
+that can be a lot of stuff.  Instead we want to undo step by step (like in
+normal Emacs).
+#+BEGIN_SRC emacs-lisp
+; (setq evil-want-fine-undo t)
+#+END_SRC
+
 ** Interacting with shell
 Guake is a dropdown terminal and switching to guake from emacs in
 the current directory is pretty helpful if you don't want to use
@@ -110,6 +117,12 @@ have this different here as we might forget to save sometimes.
   (setq super-save-auto-save-when-idle t)
   (setq auto-save-default nil)
   (super-save-mode +1))
+#+END_SRC
+
+Delete trailing whitespace on save.
+
+#+BEGIN_SRC emacs-lisp
+(add-hook 'before-save-hook 'delete-trailing-whitespace)
 #+END_SRC
 
 ** Python

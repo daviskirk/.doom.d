@@ -82,7 +82,7 @@
        grammar           ; tasing grammar mistake every you make
 
        :tools
-       ;;ansible
+       ansible
        ;;debugger          ; FIXME stepping through code, to help you add bugs
        ;;direnv
        docker
@@ -178,3 +178,8 @@
        :config
        literate
        (default +bindings +smartparens))
+
+;; workaround for https://github.com/hlissner/doom-emacs/issues/2386
+(when noninteractive
+  (after! undo-tree
+    (global-undo-tree-mode -1)))
