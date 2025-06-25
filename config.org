@@ -71,9 +71,28 @@ By default, an "undo" undoes everything in an insert-mode session.  potentially
 that can be a lot of stuff.  Instead we want to undo step by step (like in
 normal Emacs).
 #+BEGIN_SRC emacs-lisp
-; (setq evil-want-fine-undo t)
+;; (setq evil-want-fine-undo t)
 #+END_SRC
 
+We want auto-completion to be a bit snappier so we cut down on the delay
+#+BEGIN_SRC emacs-lisp
+(setq company-idle-delay 0.25)
+#+END_SRC
+
+** Spellcheck
+#+BEGIN_SRC emacs-lisp
+(setf (alist-get 'markdown-mode +spell-excluded-faces-alist)
+      '(markdown-code-face
+        markdown-pre-face
+        markdown-reference-face
+        markdown-link-face
+        markdown-url-face
+        markdown-markup-face
+        markdown-html-attr-value-face
+        markdown-html-attr-name-face
+        markdown-html-tag-name-face))
+
+#+END_SRC
 ** Interacting with shell
 Guake is a dropdown terminal and switching to guake from emacs in
 the current directory is pretty helpful if you don't want to use
@@ -127,45 +146,19 @@ Delete trailing whitespace on save.
 
 ** Python
 
+
 I use the conda package manager a lot, so we need to configure dooms builtin
 conda support.
 
 #+BEGIN_SRC emacs-lisp
 (after! conda
-  (setq conda-anaconda-home "~/anaconda")
-  (conda-env-autoactivate-mode t)
-  (setq-default conda-project-env-name nil))
-#+END_SRC
+  (setq
+   conda-env-home-directory (expand-file-name "~/anaconda")
+   conda-anaconda-home (expand-file-name "~/anaconda"))
+  ;; To make sure that changing an environment also restarts the lsp server
+  (add-hook 'conda-postactivate-hook (lambda () (lsp-restart-workspace)))
+  (add-hook 'conda-postdeactivate-hook (lambda () (lsp-restart-workspace))))
 
-Using dooms builtin support doesn't activate the current conda environment
-correctly, so we do it ourselves (+lsp option turned of in python module).
-Note that the Microsoft language server might be faster, but does not support
-custom flake8/mypy linting so we use the python language server instead.
-
-#+BEGIN_SRC emacs-lisp
-(after! python
-  (add-hook 'python-mode-local-vars-hook (lambda ()
-                                           (conda-env-activate-for-buffer)
-                                           (lsp!)))
-  (setq lsp-pyls-plugins-flake8-enabled t)
-  (setq lsp-pyls-plugins-pylint-enabled nil)
-  (setq lsp-pyls-plugins-pycodestyle-enabled nil)
-  (setq lsp-pyls-plugins-pyflakes-enabled nil))
-#+END_SRC
-
-In order for this to work we need to install a bunch of stuff in the conda
-environment so I added a custom function for that as well in case I'm ever in a
-new environment and they haven't been installed yet.
-
-#+BEGIN_SRC emacs-lisp
-(after! conda
-  (defun dek/install-lsp ()
-    "Install conda packages needed for lsp/linting/completion support."
-    (interactive)
-    (if conda-env-current-name
-      (async-shell-command
-       "conda install python-language-server mypy black isort flake8 pytest ipython && pip install pyls-black pyls-isort pyls-mypy")
-    (message "no conda env set so skipping server installation"))))
 #+END_SRC
 
 Jinja2 templating is used all over the place so we configure the package.
@@ -178,6 +171,27 @@ Jinja2 templating is used all over the place so we configure the package.
          ("\\.j2$" . jinja2-mode)
          ("\\.j2.html$" . jinja2-mode)))
 
+#+END_SRC
+
+Add python breakpoint conveniently
+
+#+BEGIN_SRC emacs-lisp
+(after! python
+  (defun dek/python-add-breakpoint ()
+    (interactive)
+    (let (pdb-regexp)
+      (setq pdb-regexp "^\\s-*breakpoint()")
+      (if (string-match pdb-regexp (thing-at-point 'line))
+          (kill-whole-line)
+        (forward-line -1)
+        (end-of-line)
+        (newline-and-indent)
+        (insert "breakpoint()")
+        (highlight-lines-matching-regexp pdb-regexp 'doom-modeline-urgent)
+        )))
+  (map! :map python-mode-map
+        :localleader
+        :desc "toggle insert breakpoint" "b" 'dek/python-add-breakpoint))
 #+END_SRC
 
 ** Kubernetes
